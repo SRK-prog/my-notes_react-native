@@ -1,12 +1,30 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {openDatabase} from 'react-native-sqlite-storage';
 import Notes from './components/notes';
 import Note from './components/note';
+import Sqlite from './helper/sqliteHelper';
+
+const db = openDatabase({name: 'my_notes_db'});
 
 const NavStack = createStackNavigator();
 
 const Navigation = () => {
+  useEffect(() => {
+    (async () => {
+      try {
+        const firstTime = await AsyncStorage.getItem('alreadyLaunched');
+        if (firstTime != null) return;
+        await new Sqlite().createTables(db);
+        await AsyncStorage.setItem('alreadyLaunched', 'true');
+      } catch (error) {
+        console.log(error);
+      }
+    })();
+  }, []);
+
   return (
     <NavigationContainer>
       <NavStack.Navigator>
@@ -19,7 +37,8 @@ const Navigation = () => {
           name="note"
           component={Note}
           options={{
-            headerStyle: {backgroundColor: '#7a7a7a', borderColor: 'white'},
+            title: '',
+            headerStyle: {backgroundColor: '#262626'},
             headerTitleStyle: {color: 'white'},
             headerTintColor: 'white',
           }}

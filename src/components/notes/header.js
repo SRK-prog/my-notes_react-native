@@ -7,15 +7,15 @@ function Header({onShowStared}) {
   const isDarkMode = useColorScheme() === 'dark';
 
   return (
-    <View className="dark:bg-black-10">
+    <View className="bg-black-10">
       <View className="flex flex-row h-16 items-center justify-between px-4">
-        <Text className="text-xl font-bold dark:text-white">Book</Text>
+        <Text className="text-xl font-bold text-white">My Notes</Text>
         <View className="h-full flex items-center justify-center">
           <Icon
             onPress={() => setShowMenu(prev => !prev)}
             name="menu"
             size={30}
-            color={isDarkMode ? 'white' : 'black'}
+            color={isDarkMode ? 'white' : 'white'}
           />
         </View>
       </View>
@@ -34,7 +34,7 @@ function Menubar({onShowStared}) {
         onPress={onShowStared}
         className="flex flex-row gap-2 ml-auto px-4 py-3"
         activeOpacity={0.5}>
-        <Icon name="star" size={16} color={isDarkMode ? 'white' : 'black'} />
+        <Icon name="star" size={16} color={isDarkMode ? 'white' : 'white'} />
         <Text>Stared</Text>
       </TouchableOpacity>
     </View>

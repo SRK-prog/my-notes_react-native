@@ -1,31 +1,30 @@
 import React, {useEffect, useState} from 'react';
 import {ScrollView, Alert} from 'react-native';
+import {useIsFocused} from '@react-navigation/native';
 import Header from './header';
 import NotesCardContainer from './notesCardContainer';
 import AddNotes from './addNotes';
 import {openDatabase} from 'react-native-sqlite-storage';
 import Sqlite from '../../helper/sqliteHelper';
 
-const db = openDatabase({
-  name: 'my_notes_db',
-});
+const db = openDatabase({name: 'my_notes_db'});
 
 function Notes({navigation}) {
   const [notes, setNotes] = useState([]);
   const [staredFilter, setStaredFilter] = useState(null);
+  const isFocused = useIsFocused();
 
   useEffect(() => {
     (async () => {
       const response = await new Sqlite().getNotes(db);
       setNotes(response);
     })();
-  }, []);
+  }, [isFocused]);
 
   const addNoteHandler = async request => {
     setNotes([request, ...notes]);
     const {title, isStared, createdAt, updatedAt} = request;
     try {
-      await new Sqlite().createTable(db);
       db.transaction(tx => {
         tx.executeSql(
           'INSERT INTO notes_table (title, isStared, createdAt, updatedAt) VALUES (?,?,?,?)',
@@ -44,8 +43,7 @@ function Notes({navigation}) {
       const restNotes = notes.filter(note => note.id != id);
       setNotes(restNotes);
       try {
-        const response = await new Sqlite().deleteNote(db, id);
-        console.log(response);
+        await new Sqlite().deleteNote(db, id);
       } catch (error) {
         console.log(error);
       }
@@ -73,7 +71,7 @@ function Notes({navigation}) {
 
   return (
     <ScrollView
-      className="h-full dark:bg-black-20"
+      className="h-full bg-black-20"
       contentInsetAdjustmentBehavior="automatic">
       <Header
         onShowStared={() =>

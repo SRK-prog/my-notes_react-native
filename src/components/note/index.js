@@ -27,7 +27,6 @@ function Note({route}) {
   useEffect(() => {
     (async () => {
       try {
-        await new Sqlite().createNoteItemTable(db);
         const response = await new Sqlite().getNoteItems(db, route?.params?.id);
         setNoteItems(response);
       } catch (error) {
@@ -55,13 +54,13 @@ function Note({route}) {
         note_id: route?.params?.id,
       };
       setFieldValues(initialValue);
-      console.log(newItem, 'newItem');
       setSelectedField('amount');
       setNoteItems(prev => [...prev, newItem]);
-      const res = await new Sqlite().createNoteItem(db, newItem);
-      console.log(res);
+      await new Sqlite().createNoteItem(db, newItem);
+      await new Sqlite()
+        .updateNoteUpdateAt(db, route?.params?.id)
+        .catch(err => console.log(err, 'update err'));
     } catch (error) {
-      console.log(error);
       Alert.alert('Invalid amount', 'Please enter a valid amount', [
         {text: 'OK'},
       ]);
@@ -73,11 +72,11 @@ function Note({route}) {
   };
 
   return (
-    <View className="h-full dark:bg-black-20">
-      <Text className="m-4 text-lg dark:text-white font-semibold">
+    <View className="h-full bg-black-20">
+      <Text className="m-4 text-lg text-white font-semibold">
         {route?.params?.title}
       </Text>
-      <View className="dark:bg-grey-30 h-80 mx-5 p-4 rounded">
+      <View className="bg-grey-30 h-80 mx-5 p-4 rounded">
         <ScrollView>
           {noteItems?.map((item, index) => (
             <NoteTable item={item} key={index} />
@@ -90,11 +89,9 @@ function Note({route}) {
             activeOpacity={1}
             onPress={() => setSelectedField('amount')}>
             <>
-              <Text className="dark:text-white font-semibold text-base">
-                Amount
-              </Text>
+              <Text className="text-white font-semibold text-base">Amount</Text>
               {!!fieldValues?.amount && (
-                <Text className="dark:text-white text-base">
+                <Text className="text-white text-base">
                   {fieldValues?.amount}
                 </Text>
               )}
@@ -104,11 +101,9 @@ function Note({route}) {
             activeOpacity={1}
             onPress={() => setSelectedField('label')}>
             <>
-              <Text className="dark:text-white font-semibold text-base">
-                Label
-              </Text>
+              <Text className="text-white font-semibold text-base">Label</Text>
               {!!fieldValues?.label && (
-                <Text className="dark:text-white text-base">
+                <Text className="text-white text-base">
                   {fieldValues?.label}
                 </Text>
               )}
@@ -116,9 +111,9 @@ function Note({route}) {
           </TouchableHighlight>
         </View>
         <TextInput
-          className="w-full dark:bg-white py-1.5 dark:text-black-0 px-2 rounded"
+          className="w-full bg-white py-1.5 text-black-0 px-2 rounded"
           placeholder={`Enter ${selectedField}`}
-          placeholderTextColor={isDarkMode ? '#828282' : 'black'}
+          placeholderTextColor={isDarkMode ? '#828282' : '#828282'}
           onChangeText={onChange}
           value={fieldValues[selectedField]}
           onSubmitEditing={addHandler}

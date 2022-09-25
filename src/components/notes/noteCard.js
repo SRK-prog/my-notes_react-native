@@ -16,12 +16,12 @@ function NotesCard({note, onDelete, navigation, onStared}) {
 
   return (
     <TouchableOpacity
-      className="dark:bg-black-30 mt-2.5 px-3 mx-5 py-2.5 rounded-sm"
+      className="bg-black-30 mt-2.5 px-3 mx-5 py-2.5 rounded-sm"
       onPress={() => navigation.navigate('note', {...note})}
       onLongPress={() => setShowDelete(true)}
       activeOpacity={0.4}>
       <View className="flex justify-between flex-row h-7 mb-4">
-        <Text className="dark:text-grey-10 text-lg font-semibold">
+        <Text className="text-grey-10 text-lg font-semibold">
           {note?.title}
         </Text>
         <TouchableHighlight
@@ -32,15 +32,15 @@ function NotesCard({note, onDelete, navigation, onStared}) {
           <Icon
             name={note?.isStared ? 'star' : 'star-o'}
             size={20}
-            color={isDarkMode ? '#b0b0b0' : 'black'}
+            color={isDarkMode ? '#b0b0b0' : '#b0b0b0'}
           />
         </TouchableHighlight>
       </View>
       <View className="flex flex-row justify-between">
-        <Text className="dark:text-grey-10">
+        <Text className="text-grey-10">
           {moment(note?.createdAt).format('DD/MM/YYYY')}
         </Text>
-        <Text className="dark:text-grey-10">
+        <Text className="text-grey-10">
           {moment(note?.updatedAt).fromNow()}
         </Text>
       </View>
@@ -52,12 +52,12 @@ function NotesCard({note, onDelete, navigation, onStared}) {
               onDelete(note?.id);
               setShowDelete(false);
             }}>
-            <Text className="dark:text-white font-bold">Delete</Text>
+            <Text className="text-white font-bold">Delete</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            className="w-14 flex justify-center items-center dark:bg-grey-20 rounded-sm h-8"
+            className="w-14 flex justify-center items-center bg-grey-20 rounded-sm h-8"
             onPress={() => setShowDelete(false)}>
-            <Text className="dark:text-white font-bold">Close</Text>
+            <Text className="text-white font-bold">Close</Text>
           </TouchableOpacity>
         </View>
       )}

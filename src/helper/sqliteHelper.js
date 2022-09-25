@@ -110,4 +110,38 @@ export default class SqliteService {
       });
     });
   };
+
+  updateNoteUpdateAt = (db, id) => {
+    return new Promise((resolve, reject) => {
+      db.transaction(tx => {
+        tx.executeSql(
+          `UPDATE notes_table SET updatedAt=${Date.now()} WHERE id=${id}`,
+          [],
+          (tx, response) => resolve({tx, response}),
+          err => reject(err),
+        );
+      });
+    });
+  };
+
+  createTables = db => {
+    return new Promise((resolve, reject) => {
+      Promise.all([this.createTable(), this.createNoteItemTable(db)])
+        .then(resolve)
+        .catch(reject);
+    });
+  };
+
+  deleteNoteItems = (db, id) => {
+    return new Promise((resolve, reject) => {
+      db.transaction(tx => {
+        tx.executeSql(
+          `DELETE FROM note_items_table WHERE note_id=${note_id}`,
+          [],
+          (tx, response) => resolve({tx, response}),
+          err => reject(err),
+        );
+      });
+    });
+  };
 }

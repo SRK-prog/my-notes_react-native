@@ -33,38 +33,38 @@ function AddNotes({addNoteHandler}) {
   return (
     <View>
       {showInputField ? (
-        <View className="dark:bg-black-10 h-11 flex flex-row items-center mx-3.5 mt-2.5">
+        <View className="bg-black-10 h-11 flex flex-row items-center mx-3.5 mt-2.5">
           <TouchableOpacity
             className="px-4 h-full flex justify-center items-center"
             onPress={() => setShowInputField(false)}>
             <Icon
               name="remove"
               size={15}
-              color={isDarkMode ? '#bfbbbb' : 'black'}
+              color={isDarkMode ? '#bfbbbb' : '#bfbbbb'}
             />
           </TouchableOpacity>
           <TextInput
-            className="flex-grow dark:bg-slate-200 py-1 rounded dark:text-black-0"
+            className="flex-grow bg-white py-1 rounded text-black-0"
             value={noteTitle}
             onChangeText={setNoteTitle}
             autoFocus
             placeholder="Add New..."
             onSubmitEditing={addNote}
-            placeholderTextColor={isDarkMode ? "#828282" : 'black'}
+            placeholderTextColor={isDarkMode ? '#828282' : '#828282'}
           />
-          <TouchableOpacity className="dark:text-white px-4" onPress={addNote}>
+          <TouchableOpacity className="text-white px-4" onPress={addNote}>
             <Text>Create</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <TouchableOpacity
-          className="dark:bg-black-10 h-11 flex flex-row items-center mx-3.5 mt-2.5 px-4"
+          className="bg-black-10 h-11 flex flex-row items-center mx-3.5 mt-2.5 px-4"
           onPress={closeInput}
           activeOpacity={0.4}>
           <Icon
             name="plus"
             size={15}
-            color={isDarkMode ? '#bfbbbb' : 'black'}
+            color={isDarkMode ? '#bfbbbb' : '#bfbbbb'}
           />
           <Text className="ml-2.5">Add New</Text>
         </TouchableOpacity>
