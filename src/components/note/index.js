@@ -13,9 +13,7 @@ import Sqlite from '../../helper/sqliteHelper';
 import NoteTable from './noteTable';
 import {openDatabase} from 'react-native-sqlite-storage';
 
-const db = openDatabase({
-  name: 'my_notes_db',
-});
+const db = openDatabase({name: 'my_notes_db'});
 
 function Note({route}) {
   const isDarkMode = useColorScheme() === 'dark';
@@ -56,10 +54,12 @@ function Note({route}) {
       setFieldValues(initialValue);
       setSelectedField('amount');
       setNoteItems(prev => [...prev, newItem]);
-      await new Sqlite().createNoteItem(db, newItem);
-      await new Sqlite()
-        .updateNoteUpdateAt(db, route?.params?.id)
-        .catch(err => console.log(err, 'update err'));
+      const sqlite = new Sqlite();
+
+      await Promise.all([
+        sqlite.createNoteItem(db, newItem),
+        sqlite.updateNoteUpdateAt(db, route?.params?.id),
+      ]);
     } catch (error) {
       Alert.alert('Invalid amount', 'Please enter a valid amount', [
         {text: 'OK'},

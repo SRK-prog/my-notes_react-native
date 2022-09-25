@@ -16,8 +16,10 @@ function Notes({navigation}) {
 
   useEffect(() => {
     (async () => {
-      const response = await new Sqlite().getNotes(db);
-      setNotes(response);
+      try {
+        const response = await new Sqlite().getNotes(db);
+        setNotes(response);
+      } catch (error) {}
     })();
   }, [isFocused]);
 
@@ -33,6 +35,8 @@ function Notes({navigation}) {
           err => Alert.alert('something went wrong!'),
         );
       });
+      const response = await new Sqlite().getNotes(db);
+      setNotes(response);
     } catch (error) {
       console.log(error);
     }
@@ -43,7 +47,11 @@ function Notes({navigation}) {
       const restNotes = notes.filter(note => note.id != id);
       setNotes(restNotes);
       try {
-        await new Sqlite().deleteNote(db, id);
+        const sqlite = new Sqlite();
+        await Promise.all([
+          sqlite.deleteNote(db, id),
+          sqlite.deleteNoteItems(db, id),
+        ]);
       } catch (error) {
         console.log(error);
       }

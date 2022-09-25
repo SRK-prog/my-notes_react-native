@@ -126,13 +126,13 @@ export default class SqliteService {
 
   createTables = db => {
     return new Promise((resolve, reject) => {
-      Promise.all([this.createTable(), this.createNoteItemTable(db)])
+      Promise.all([this.createTable(db), this.createNoteItemTable(db)])
         .then(resolve)
         .catch(reject);
     });
   };
 
-  deleteNoteItems = (db, id) => {
+  deleteNoteItems = (db, note_id) => {
     return new Promise((resolve, reject) => {
       db.transaction(tx => {
         tx.executeSql(
