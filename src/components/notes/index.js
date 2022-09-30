@@ -6,6 +6,7 @@ import NotesCardContainer from './notesCardContainer';
 import AddNotes from './addNotes';
 import {openDatabase} from 'react-native-sqlite-storage';
 import Sqlite from '../../helper/sqliteHelper';
+import {parseResult} from '../../utility';
 
 const db = openDatabase({name: 'my_notes_db'});
 
@@ -17,26 +18,31 @@ function Notes({navigation}) {
   useEffect(() => {
     (async () => {
       try {
-        const response = await new Sqlite().getNotes(db);
-        setNotes(response);
+        const {results} = await new Sqlite().executeSQL(
+          db,
+          'SELECT * FROM notes_table',
+        );
+        const data = parseResult(results);
+        const sorted = data.sort(
+          (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt),
+        );
+        setNotes(sorted);
       } catch (error) {}
     })();
   }, [isFocused]);
 
   const addNoteHandler = async request => {
     setNotes([request, ...notes]);
-    const {title, isStared, createdAt, updatedAt} = request;
+    const {id, title, isStared, createdAt, updatedAt} = request;
     try {
       db.transaction(tx => {
         tx.executeSql(
-          'INSERT INTO notes_table (title, isStared, createdAt, updatedAt) VALUES (?,?,?,?)',
-          [title, isStared, createdAt, updatedAt],
+          'INSERT INTO notes_table (id, title, isStared, createdAt, updatedAt) VALUES (?,?,?,?,?)',
+          [id, title, isStared, createdAt, updatedAt],
           (tx, results) => {},
           err => Alert.alert('something went wrong!'),
         );
       });
-      const response = await new Sqlite().getNotes(db);
-      setNotes(response);
     } catch (error) {
       console.log(error);
     }
@@ -47,11 +53,8 @@ function Notes({navigation}) {
       const restNotes = notes.filter(note => note.id != id);
       setNotes(restNotes);
       try {
-        const sqlite = new Sqlite();
-        await Promise.all([
-          sqlite.deleteNote(db, id),
-          sqlite.deleteNoteItems(db, id),
-        ]);
+        const {deleteNote, deleteNoteItems} = new Sqlite();
+        await Promise.all([deleteNote(db, id), deleteNoteItems(db, id)]);
       } catch (error) {
         console.log(error);
       }
@@ -67,11 +70,14 @@ function Notes({navigation}) {
   const starNote = async (id, star) => {
     setNotes(prevNotes =>
       prevNotes.map(note =>
-        note.id === id ? {...note, isStared: !star} : note,
+        note.id === id ? {...note, isStared: star === 0 ? 1 : 0} : note,
       ),
     );
     try {
-      await new Sqlite().updateStar(db, id, !star);
+      await new Sqlite().executeSQL(
+        db,
+        `UPDATE notes_table SET isStared=${!star} WHERE id=${id}`,
+      );
     } catch (error) {
       console.log(error);
     }
@@ -82,9 +88,7 @@ function Notes({navigation}) {
       className="h-full bg-black-20"
       contentInsetAdjustmentBehavior="automatic">
       <Header
-        onShowStared={() =>
-          setStaredFilter(prev => (prev === null ? false : null))
-        }
+        onShowStared={() => setStaredFilter(prev => (prev === null ? 0 : null))}
       />
       <AddNotes addNoteHandler={addNoteHandler} />
       <NotesCardContainer

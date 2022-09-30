@@ -3,37 +3,10 @@ export default class SqliteService {
     return new Promise((resolve, reject) => {
       db.transaction(txn => {
         txn.executeSql(
-          `CREATE TABLE IF NOT EXISTS notes_table (id INTEGER PRIMARY KEY AUTOINCREMENT, title VARCHAR(30), isStared BOOLEAN, createdAt INTEGER, updatedAt INTEGER)`,
+          `CREATE TABLE IF NOT EXISTS notes_table (id INTEGER PRIMARY KEY, title VARCHAR(30), isStared BOOLEAN, createdAt INTEGER, updatedAt INTEGER)`,
           [],
-          (tx, res) => {
-            resolve({
-              tx,
-              response: res,
-            });
-          },
+          (tx, response) => resolve({tx, response}),
           err => reject(err),
-        );
-      });
-    });
-  };
-
-  getNotes = db => {
-    return new Promise(resolve => {
-      db.transaction(tx => {
-        tx.executeSql(
-          'SELECT * FROM notes_table',
-          [],
-          (tx, results) => {
-            const notesArray = [];
-            for (let i = 0; i < results.rows.length; ++i) {
-              notesArray.push(results.rows.item(i));
-            }
-            const sorted = notesArray.sort(
-              (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt),
-            );
-            resolve(sorted);
-          },
-          () => resolve([]),
         );
       });
     });
@@ -44,19 +17,6 @@ export default class SqliteService {
       db.transaction(tx => {
         tx.executeSql(
           `DELETE FROM notes_table WHERE id = ${id}`,
-          [],
-          (tx, response) => resolve({tx, response}),
-          err => reject(err),
-        );
-      });
-    });
-  };
-
-  updateStar = (db, id, isStared) => {
-    return new Promise((resolve, reject) => {
-      db.transaction(tx => {
-        tx.executeSql(
-          `UPDATE notes_table SET isStared=${isStared} WHERE id=${id}`,
           [],
           (tx, response) => resolve({tx, response}),
           err => reject(err),
@@ -92,38 +52,6 @@ export default class SqliteService {
     });
   };
 
-  getNoteItems = async (db, note_id) => {
-    return new Promise((resolve, reject) => {
-      db.transaction(txn => {
-        txn.executeSql(
-          `SELECT * FROM note_items_table WHERE note_id=${note_id}`,
-          [],
-          (tx, results) => {
-            const array = [];
-            for (let i = 0; i < results.rows.length; ++i) {
-              array.push(results.rows.item(i));
-            }
-            resolve(array);
-          },
-          err => reject(err),
-        );
-      });
-    });
-  };
-
-  updateNoteUpdateAt = (db, id) => {
-    return new Promise((resolve, reject) => {
-      db.transaction(tx => {
-        tx.executeSql(
-          `UPDATE notes_table SET updatedAt=${Date.now()} WHERE id=${id}`,
-          [],
-          (tx, response) => resolve({tx, response}),
-          err => reject(err),
-        );
-      });
-    });
-  };
-
   createTables = db => {
     return new Promise((resolve, reject) => {
       Promise.all([this.createTable(db), this.createNoteItemTable(db)])
@@ -139,6 +67,19 @@ export default class SqliteService {
           `DELETE FROM note_items_table WHERE note_id=${note_id}`,
           [],
           (tx, response) => resolve({tx, response}),
+          err => reject(err),
+        );
+      });
+    });
+  };
+
+  executeSQL = (db, query, data = []) => {
+    return new Promise((resolve, reject) => {
+      db.transaction(tx => {
+        tx.executeSql(
+          query,
+          data,
+          (tx, results) => resolve({tx, results}),
           err => reject(err),
         );
       });

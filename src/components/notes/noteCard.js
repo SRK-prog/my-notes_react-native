@@ -30,7 +30,7 @@ function NotesCard({note, onDelete, navigation, onStared}) {
           underlayColor="#3d3d3d"
           className="pl-5">
           <Icon
-            name={note?.isStared ? 'star' : 'star-o'}
+            name={!!note?.isStared ? 'star' : 'star-o'}
             size={20}
             color={isDarkMode ? '#b0b0b0' : '#b0b0b0'}
           />

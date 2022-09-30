@@ -7,6 +7,7 @@ import {
   useColorScheme,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/dist/FontAwesome';
+import {uiid} from '../../utility';
 
 function AddNotes({addNoteHandler}) {
   const isDarkMode = useColorScheme() === 'dark';
@@ -16,8 +17,9 @@ function AddNotes({addNoteHandler}) {
   const addNote = () => {
     if (!noteTitle.trim()) return;
     addNoteHandler({
+      id: uiid(),
       title: noteTitle,
-      isStared: false,
+      isStared: 0,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });

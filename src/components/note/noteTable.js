@@ -1,12 +1,15 @@
 import React from 'react';
-import {View, Text} from 'react-native';
+import {Text, TouchableOpacity} from 'react-native';
 
-function NoteTable({item}) {
+function NoteTable({item, onLongPress}) {
   return (
-    <View className="flex flex-row h-7 justify-between">
+    <TouchableOpacity
+      className="flex flex-row h-8 justify-between "
+      onLongPress={() => onLongPress(item)}
+      activeOpacity={1}>
       <Text className="text-white">{item?.amount}</Text>
       <Text className="text-white">{item?.label}</Text>
-    </View>
+    </TouchableOpacity>
   );
 }
 
