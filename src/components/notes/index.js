@@ -18,8 +18,7 @@ function Notes({navigation}) {
   useEffect(() => {
     (async () => {
       try {
-        const {results} = await new Sqlite().executeSQL(
-          db,
+        const {results} = await new Sqlite(db).executeSQL(
           'SELECT * FROM notes_table',
         );
         const data = parseResult(results);
@@ -35,16 +34,12 @@ function Notes({navigation}) {
     setNotes([request, ...notes]);
     const {id, title, isStared, createdAt, updatedAt} = request;
     try {
-      db.transaction(tx => {
-        tx.executeSql(
-          'INSERT INTO notes_table (id, title, isStared, createdAt, updatedAt) VALUES (?,?,?,?,?)',
-          [id, title, isStared, createdAt, updatedAt],
-          (tx, results) => {},
-          err => Alert.alert('something went wrong!'),
-        );
-      });
+      await new Sqlite(db).executeSQL(
+        'INSERT INTO notes_table (id, title, isStared, createdAt, updatedAt) VALUES (?,?,?,?,?)',
+        [id, title, isStared, createdAt, updatedAt],
+      );
     } catch (error) {
-      console.log(error);
+      Alert.alert('Something Went Wrong!');
     }
   };
 
@@ -53,8 +48,11 @@ function Notes({navigation}) {
       const restNotes = notes.filter(note => note.id != id);
       setNotes(restNotes);
       try {
-        const {deleteNote, deleteNoteItems} = new Sqlite();
-        await Promise.all([deleteNote(db, id), deleteNoteItems(db, id)]);
+        const {executeSQL} = new Sqlite(db);
+        await Promise.all([
+          executeSQL(`DELETE FROM notes_table WHERE id=${id}`),
+          executeSQL(`DELETE FROM note_items_table WHERE note_id=${id}`),
+        ]);
       } catch (error) {
         console.log(error);
       }
@@ -74,8 +72,7 @@ function Notes({navigation}) {
       ),
     );
     try {
-      await new Sqlite().executeSQL(
-        db,
+      await new Sqlite(db).executeSQL(
         `UPDATE notes_table SET isStared=${!star} WHERE id=${id}`,
       );
     } catch (error) {

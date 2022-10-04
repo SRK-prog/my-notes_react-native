@@ -17,7 +17,7 @@ const Navigation = () => {
       try {
         const firstTime = await AsyncStorage.getItem('alreadyLaunched');
         if (firstTime != null) return;
-        await new Sqlite().createTables(db);
+        await new Sqlite(db).createTables();
         await AsyncStorage.setItem('alreadyLaunched', 'true');
       } catch (error) {
         console.log(error);

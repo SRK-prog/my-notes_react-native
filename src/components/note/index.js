@@ -12,7 +12,7 @@ import {
 import Sqlite from '../../helper/sqliteHelper';
 import NoteTable from './noteTable';
 import {openDatabase} from 'react-native-sqlite-storage';
-import {parseResult} from '../../utility';
+import {parseResult, uiid} from '../../utility';
 
 const db = openDatabase({name: 'my_notes_db'});
 
@@ -35,8 +35,7 @@ function Note({route}) {
   useEffect(() => {
     (async () => {
       try {
-        const {results} = await new Sqlite().executeSQL(
-          db,
+        const {results} = await new Sqlite(db).executeSQL(
           `SELECT * FROM note_items_table WHERE note_id=${route?.params?.id}`,
         );
         const data = parseResult(results);
@@ -101,35 +100,34 @@ function Note({route}) {
         setFieldValues(initialValue);
         setCalculatedAmount(0);
         setSelectedField('amount');
-        const {executeSQL} = new Sqlite();
+        const {executeSQL} = new Sqlite(db);
         await Promise.all([
           executeSQL(
-            db,
             `UPDATE note_items_table SET amount=${calAmount}, label="${label}" WHERE id=${noteItem?.id}`,
           ),
           executeSQL(
-            db,
             `UPDATE notes_table SET updatedAt=${Date.now()} WHERE id=${
               route?.params?.id
             }`,
           ),
         ]);
       } else {
-        const newItem = {
-          amount: calculatedAmount,
-          label: fieldValues?.label,
-          note_id: route?.params?.id,
-        };
+        const id = uiid();
+        const amount = calculatedAmount;
+        const label = fieldValues?.label;
+        const note_id = route?.params?.id;
+
         setFieldValues(initialValue);
         setCalculatedAmount(0);
         setSelectedField('amount');
-        setNoteItems(prev => [...prev, newItem]);
-        const {createNoteItem, executeSQL} = new Sqlite();
-
+        setNoteItems(prev => [...prev, {id, amount, label, note_id}]);
+        const {executeSQL} = new Sqlite(db);
         await Promise.all([
-          createNoteItem(db, newItem),
           executeSQL(
-            db,
+            'INSERT INTO note_items_table (id, amount, label, note_id) VALUES (?,?,?,?)',
+            [id, amount, label, note_id],
+          ),
+          executeSQL(
             `UPDATE notes_table SET updatedAt=${Date.now()} WHERE id=${
               route?.params?.id
             }`,
@@ -157,8 +155,7 @@ function Note({route}) {
     const deleteItem = async () => {
       setNoteItems(prevItem => prevItem?.filter(item => item.id != id));
       try {
-        await new Sqlite().executeSQL(
-          db,
+        await new Sqlite(db).executeSQL(
           `DELETE FROM note_items_table WHERE id=${id}`,
         );
       } catch (error) {
@@ -211,7 +208,7 @@ function Note({route}) {
       </View>
       <View className="w-full absolute bottom-5 px-5 gap-3 left-0">
         <View
-          className={`flex flex-row justify-between px-2 w-full py-1 ${
+          className={`flex flex-row justify-between px-2 w-full py-1 rounded-sm ${
             isKeyboardVisible && 'bg-black-30'
           }`}>
           <TouchableOpacity
