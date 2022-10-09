@@ -8,6 +8,7 @@ function NotesCardContainer({
   onDelete,
   onStared,
   navigation,
+  onDownload,
 }) {
   return (
     <View className="mt-2.5">
@@ -20,6 +21,7 @@ function NotesCardContainer({
             onDelete={onDelete}
             onStared={onStared}
             navigation={navigation}
+            onDownload={onDownload}
           />
         ))}
     </View>
