@@ -12,7 +12,7 @@ import {
 import Sqlite from '../../helper/sqliteHelper';
 import NoteTable from './noteTable';
 import {openDatabase} from 'react-native-sqlite-storage';
-import {parseResult, uiid} from '../../utility';
+import {parseResult, uiid, dateToDMY, fromNow} from '../../utility';
 
 const db = openDatabase({name: 'my_notes_db'});
 
@@ -23,6 +23,10 @@ function Note({route}) {
   const [fieldValues, setFieldValues] = useState(initialValue);
   const [selectedField, setSelectedField] = useState('amount');
   const [calculatedAmount, setCalculatedAmount] = useState(0);
+  const [showTotal, setShowTotal] = useState({
+    status: route?.params?.showTotal || 0,
+    total: 0,
+  });
   const [editMode, setEditMode] = useState({
     status: false,
     noteItem: {},
@@ -40,6 +44,12 @@ function Note({route}) {
         );
         const data = parseResult(results);
         setNoteItems(data);
+        if (showTotal.status) {
+          setShowTotal(prev => ({
+            ...prev,
+            total: data.reduce((n, {amount}) => n + amount, 0),
+          }));
+        }
         const lastItem = data?.[data.length - 1];
         if (lastItem) {
           setFieldValues(prev => ({
@@ -52,7 +62,7 @@ function Note({route}) {
         console.log(error, 'error');
       }
     })();
-  }, []);
+  }, [showTotal.status]);
 
   useEffect(() => {
     const keyboardDidShow = Keyboard.addListener('keyboardDidShow', () => {
@@ -69,6 +79,21 @@ function Note({route}) {
   }, []);
 
   const addHandler = async () => {
+    const id = uiid();
+    const amount = calculatedAmount;
+    const label = fieldValues?.label;
+    const note_id = route?.params?.id;
+    const createdAt = Date.now();
+    const updatedAt = Date.now();
+    const {executeSQL} = new Sqlite(db);
+    if (fieldValues.amount === 'total') {
+      const status = showTotal.status == 0 ? 1 : 0;
+      executeSQL(
+        `UPDATE notes_table SET showTotal=${status} WHERE id=${note_id}`,
+      ).catch(() => {});
+      setShowTotal(prev => ({...prev, status}));
+      return;
+    }
     if (!fieldValues.amount) {
       setSelectedField('amount');
       return;
@@ -84,58 +109,45 @@ function Note({route}) {
       ]);
       return;
     }
+
+    setFieldValues(initialValue);
+    setCalculatedAmount(0);
+    setSelectedField('amount');
+
     try {
       if (editMode.status) {
         const {noteItem} = editMode;
-        const calAmount = calculatedAmount;
-        const label = fieldValues?.label;
         setNoteItems(prevItem =>
           prevItem?.map(item =>
-            item?.id == noteItem?.id
-              ? {...noteItem, amount: calAmount, label}
-              : item,
+            item?.id == noteItem?.id ? {...noteItem, amount, label} : item,
           ),
         );
         setEditMode({status: false, noteItem: {}});
-        setFieldValues(initialValue);
-        setCalculatedAmount(0);
-        setSelectedField('amount');
-        const {executeSQL} = new Sqlite(db);
         await Promise.all([
           executeSQL(
-            `UPDATE note_items_table SET amount=${calAmount}, label="${label}" WHERE id=${noteItem?.id}`,
+            `UPDATE note_items_table SET amount=${amount}, label="${label}", updatedAt=${updatedAt} WHERE id=${noteItem?.id}`,
           ),
           executeSQL(
-            `UPDATE notes_table SET updatedAt=${Date.now()} WHERE id=${
-              route?.params?.id
-            }`,
+            `UPDATE notes_table SET updatedAt=${updatedAt} WHERE id=${note_id}`,
           ),
         ]);
       } else {
-        const id = uiid();
-        const amount = calculatedAmount;
-        const label = fieldValues?.label;
-        const note_id = route?.params?.id;
-
-        setFieldValues(initialValue);
-        setCalculatedAmount(0);
-        setSelectedField('amount');
-        setNoteItems(prev => [...prev, {id, amount, label, note_id}]);
+        setNoteItems(prev => [
+          ...prev,
+          {id, amount, label, note_id, createdAt, updatedAt},
+        ]);
         const {executeSQL} = new Sqlite(db);
         await Promise.all([
           executeSQL(
-            'INSERT INTO note_items_table (id, amount, label, note_id) VALUES (?,?,?,?)',
-            [id, amount, label, note_id],
+            'INSERT INTO note_items_table (id, amount, label, note_id, createdAt, updatedAt) VALUES (?,?,?,?,?,?)',
+            [id, amount, label, note_id, createdAt, updatedAt],
           ),
           executeSQL(
-            `UPDATE notes_table SET updatedAt=${Date.now()} WHERE id=${
-              route?.params?.id
-            }`,
+            `UPDATE notes_table SET updatedAt=${updatedAt} WHERE id=${route?.params?.id}`,
           ),
         ]);
       }
     } catch (error) {
-      console.log(error);
       Alert.alert('Something Went Wrong!');
     }
   };
@@ -171,20 +183,31 @@ function Note({route}) {
   };
 
   const openAlert = value => {
-    const {amount, label, id} = value;
-    Alert.alert('Select Option', `Amount: ${amount}  Label: ${label}`, [
-      {text: 'Cancel'},
-      {text: 'Delete', onPress: () => deteteNoteItem(id)},
-      {
-        text: 'Edit',
-        onPress: () => {
-          setEditMode({status: true, noteItem: value});
-          setFieldValues({amount: `${amount}`, label});
-          setCalculatedAmount(`${amount}`);
-          inputRef?.current?.focus();
+    const {amount, label, id, createdAt, updatedAt} = value;
+    Alert.alert(
+      'Select Option',
+      `Amount: ${amount}  Label: ${label} \n\nDate: ${dateToDMY(
+        createdAt,
+      )}  LastEdit: ${fromNow(updatedAt)}`,
+      [
+        {text: 'Cancel'},
+        {text: 'Delete', onPress: () => deteteNoteItem(id)},
+        {
+          text: 'Edit',
+          onPress: () => {
+            setEditMode({status: true, noteItem: value});
+            setFieldValues({amount: `${amount}`, label});
+            setCalculatedAmount(`${amount}`);
+            inputRef?.current?.focus();
+          },
         },
-      },
-    ]);
+      ],
+    );
+  };
+
+  const selectItem = ({amount}) => {
+    setFieldValues({amount: `${amount}`});
+    setCalculatedAmount(`${amount}`);
   };
 
   return (
@@ -192,8 +215,9 @@ function Note({route}) {
       <Text className="m-4 text-lg text-white font-semibold">
         {route?.params?.title}
       </Text>
-      <View className={`bg-grey-30 mx-5 p-4 rounded h-80`}>
+      <View className={`bg-grey-30 mx-5 rounded h-80 py-3`}>
         <ScrollView
+          className="px-4"
           ref={scrollRef}
           onContentSizeChange={(width, height) =>
             scrollRef?.current?.scrollTo({y: height})
@@ -202,8 +226,20 @@ function Note({route}) {
             scrollRef?.current?.scrollTo({y: layout?.height})
           }>
           {noteItems?.map((item, idx) => (
-            <NoteTable item={item} key={idx} onLongPress={openAlert} />
+            <NoteTable
+              item={item}
+              key={idx}
+              onLongPress={openAlert}
+              onPress={selectItem}
+            />
           ))}
+          {!!showTotal.status && (
+            <NoteTable
+              item={{amount: showTotal.total, label: 'Total'}}
+              onLongPress={() => {}}
+              onPress={() => {}}
+            />
+          )}
         </ScrollView>
       </View>
       <View className="w-full absolute bottom-5 px-5 gap-3 left-0">

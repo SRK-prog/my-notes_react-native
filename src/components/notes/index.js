@@ -1,12 +1,14 @@
 import React, {useEffect, useState} from 'react';
 import {ScrollView, Alert} from 'react-native';
 import {useIsFocused} from '@react-navigation/native';
+import {openDatabase} from 'react-native-sqlite-storage';
+import RNFS from 'react-native-fs';
+import DocumentPicker from 'react-native-document-picker';
 import Header from './header';
 import NotesCardContainer from './notesCardContainer';
 import AddNotes from './addNotes';
-import {openDatabase} from 'react-native-sqlite-storage';
 import Sqlite from '../../helper/sqliteHelper';
-import {parseResult} from '../../utility';
+import {parseResult, dateToDMY, createQueryFromArray} from '../../utility';
 
 const db = openDatabase({name: 'my_notes_db'});
 
@@ -31,13 +33,13 @@ function Notes({navigation}) {
   }, [isFocused]);
 
   const addNoteHandler = async request => {
-    setNotes([request, ...notes]);
-    const {id, title, isStared, createdAt, updatedAt} = request;
+    const {id, title, isStared, createdAt, updatedAt, showTotal} = request;
     try {
-      await new Sqlite(db).executeSQL(
-        'INSERT INTO notes_table (id, title, isStared, createdAt, updatedAt) VALUES (?,?,?,?,?)',
-        [id, title, isStared, createdAt, updatedAt],
+      new Sqlite(db).executeSQL(
+        'INSERT INTO notes_table (id, title, isStared, createdAt, updatedAt, showTotal) VALUES (?,?,?,?,?,?)',
+        [id, title, isStared, createdAt, updatedAt, showTotal],
       );
+      setNotes(prev => [request, ...prev]);
     } catch (error) {
       Alert.alert('Something Went Wrong!');
     }
@@ -58,9 +60,7 @@ function Notes({navigation}) {
       }
     };
     Alert.alert('Delete Note', 'Are you sure you want to delete this note', [
-      {
-        text: 'Cancel',
-      },
+      {text: 'Cancel'},
       {text: 'OK', onPress: deleteNote},
     ]);
   };
@@ -80,12 +80,64 @@ function Notes({navigation}) {
     }
   };
 
+  const downloadFile = obj => {
+    const download = async () => {
+      const path =
+        RNFS.DownloadDirectoryPath +
+        `/${obj?.title}-${dateToDMY(obj?.createdAt, '-')}.json`;
+      const {results} = await new Sqlite(db).executeSQL(
+        `SELECT * FROM note_items_table WHERE note_id=${obj?.id}`,
+      );
+      obj.noteItems = parseResult(results);
+      await RNFS.writeFile(path, JSON.stringify(obj, null, 2), 'utf8');
+    };
+    Alert.alert('Download', 'Do you want to download this note', [
+      {text: 'Cancel'},
+      {text: 'OK', onPress: download},
+    ]);
+  };
+
+  const importFile = async () => {
+    try {
+      const file = await DocumentPicker.pickSingle({
+        presentationStyle: 'fullScreen',
+      });
+      if (file.type !== 'application/json') {
+        Alert.alert(
+          'Invalid File Type',
+          'Please select a valid file type (json)',
+        );
+        return;
+      }
+      const data = await RNFS.readFile(file?.uri, 'utf8');
+      const noteObject = JSON.parse(data);
+      const {id, title, isStared, createdAt, updatedAt, showTotal, noteItems} =
+        noteObject;
+      const query = createQueryFromArray(noteItems);
+      const {executeSQL} = new Sqlite(db);
+      await Promise.all([
+        executeSQL(
+          'INSERT INTO notes_table (id, title, isStared, createdAt, updatedAt, showTotal) VALUES (?,?,?,?,?,?)',
+          [id, title, isStared, createdAt, updatedAt, showTotal],
+        ),
+        executeSQL(query),
+      ]);
+      setNotes(prev => [
+        {id, title, isStared, createdAt, updatedAt, showTotal},
+        ...prev,
+      ]);
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
   return (
     <ScrollView
       className="h-full bg-black-20"
       contentInsetAdjustmentBehavior="automatic">
       <Header
         onShowStared={() => setStaredFilter(prev => (prev === null ? 0 : null))}
+        onSelectFile={importFile}
       />
       <AddNotes addNoteHandler={addNoteHandler} />
       <NotesCardContainer
@@ -94,6 +146,7 @@ function Notes({navigation}) {
         onDelete={deteteNoteAlert}
         onStared={starNote}
         navigation={navigation}
+        onDownload={downloadFile}
       />
     </ScrollView>
   );

@@ -22,6 +22,7 @@ function AddNotes({addNoteHandler}) {
       isStared: 0,
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      showTotal: 0,
     });
     setNoteTitle('');
     setShowInputField(false);
