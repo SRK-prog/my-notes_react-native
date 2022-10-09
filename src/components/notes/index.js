@@ -21,13 +21,9 @@ function Notes({navigation}) {
     (async () => {
       try {
         const {results} = await new Sqlite(db).executeSQL(
-          'SELECT * FROM notes_table',
+          'SELECT * FROM notes_table ORDER BY updatedAt DESC',
         );
-        const data = parseResult(results);
-        const sorted = data.sort(
-          (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt),
-        );
-        setNotes(sorted);
+        setNotes(parseResult(results));
       } catch (error) {}
     })();
   }, [isFocused]);
@@ -84,7 +80,7 @@ function Notes({navigation}) {
     const download = async () => {
       const path =
         RNFS.DownloadDirectoryPath +
-        `/${obj?.title}-${dateToDMY(obj?.createdAt, '-')}.json`;
+        `/${obj?.title}-${dateToDMY(Date.now(), '-')}.json`;
       const {results} = await new Sqlite(db).executeSQL(
         `SELECT * FROM note_items_table WHERE note_id=${obj?.id}`,
       );

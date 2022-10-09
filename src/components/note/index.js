@@ -40,7 +40,7 @@ function Note({route}) {
     (async () => {
       try {
         const {results} = await new Sqlite(db).executeSQL(
-          `SELECT * FROM note_items_table WHERE note_id=${route?.params?.id}`,
+          `SELECT * FROM note_items_table WHERE note_id=${route?.params?.id} ORDER BY createdAt ASC`,
         );
         const data = parseResult(results);
         setNoteItems(data);
@@ -143,7 +143,7 @@ function Note({route}) {
             [id, amount, label, note_id, createdAt, updatedAt],
           ),
           executeSQL(
-            `UPDATE notes_table SET updatedAt=${updatedAt} WHERE id=${route?.params?.id}`,
+            `UPDATE notes_table SET updatedAt=${updatedAt} WHERE id=${note_id}`,
           ),
         ]);
       }

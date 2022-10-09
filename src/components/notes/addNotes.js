@@ -15,10 +15,11 @@ function AddNotes({addNoteHandler}) {
   const [noteTitle, setNoteTitle] = useState('');
 
   const addNote = () => {
-    if (!noteTitle.trim()) return;
+    const title = noteTitle.trim();
+    if (!title) return;
     addNoteHandler({
       id: uiid(),
-      title: noteTitle,
+      title,
       isStared: 0,
       createdAt: Date.now(),
       updatedAt: Date.now(),
